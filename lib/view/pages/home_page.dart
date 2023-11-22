@@ -1,5 +1,10 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:vocsy_epub_viewer/epub_viewer.dart';
 
 import '../../controller/home_controller.dart';
 import 'favoritas_page.dart';
@@ -13,11 +18,76 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final HomeController controller = Get.put(HomeController());
+  String? filePath = null;
+  late bool loading;
+  Dio dio = Dio();
 
   @override
   void initState() {
     super.initState();
     controller.getBooks();
+  }
+
+  startDownload(String bookUrl, String bookTitle) async {
+    Directory? appDocDir = Platform.isAndroid
+        ? await getExternalStorageDirectory()
+        : await getApplicationDocumentsDirectory();
+
+    String path = appDocDir!.path + '/${bookTitle}.epub';
+    File file = File(path);
+
+    if (!File(path).existsSync()) {
+      await file.create();
+      await dio.download(
+        bookUrl,
+        path,
+        deleteOnError: true,
+        onReceiveProgress: (receivedBytes, totalBytes) {
+          setState(() {
+            loading = true;
+          });
+        },
+      ).whenComplete(() {
+        setState(() {
+          loading = false;
+          filePath = path;
+        });
+      });
+    } else {
+      setState(() {
+        loading = false;
+        filePath = path;
+      });
+    }
+  }
+
+  openEpubViewer(String epubPath, String bookTitle) {
+    VocsyEpub.setConfig(
+      themeColor: Theme.of(context).primaryColor,
+      identifier: "book",
+      scrollDirection: EpubScrollDirection.ALLDIRECTIONS,
+      allowSharing: true,
+      enableTts: true,
+      nightMode: false,
+    );
+
+    VocsyEpub.locatorStream.listen((locator) {
+      print('LOCATOR: $locator');
+    });
+
+    if (File(filePath!).existsSync()) {
+      VocsyEpub.open(
+        epubPath,
+        lastLocation: EpubLocator.fromJson({
+          "bookId": "1",
+          "href": "/path/to/book/page.xhtml",
+          "created": 1622116345,
+          "locations": {"cfi": "epubcfi(/0!/4/4[simple_book]/2/2/6)"}
+        }),
+      );
+    } else {
+      startDownload(filePath!, bookTitle);
+    }
   }
 
   @override
@@ -72,7 +142,13 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                             GestureDetector(
-                              onTap: () async {},
+                              onTap: () async {
+                                await startDownload(
+                                    controller.books[index].download_url,
+                                    controller.books[index].title);
+                                openEpubViewer(
+                                    filePath!, controller.books[index].title);
+                              },
                               child: Image.network(
                                 controller.books[index].cover_url,
                                 height: 100,
