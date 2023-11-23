@@ -20,4 +20,15 @@ class BookModel {
       author: json["author"],
       cover_url: json["cover_url"],
       download_url: json["download_url"]);
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'author': author,
+      'cover_url': cover_url,
+      'download_url': download_url,
+      'marker': marker ? 1 : 0,
+    };
+  }
 }

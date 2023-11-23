@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:desafio_tecnico_virtual_bookshelf/model/book_model.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -18,7 +19,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final HomeController controller = Get.put(HomeController());
-  String? filePath = null;
+  String filePath = '';
   late bool loading;
   Dio dio = Dio();
 
@@ -61,21 +62,21 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  openEpubViewer(String epubPath, String bookTitle) {
-    VocsyEpub.setConfig(
-      themeColor: Theme.of(context).primaryColor,
-      identifier: "book",
-      scrollDirection: EpubScrollDirection.ALLDIRECTIONS,
-      allowSharing: true,
-      enableTts: true,
-      nightMode: false,
-    );
+  openEpubViewer(String epubPath) {
+    try {
+      VocsyEpub.setConfig(
+        themeColor: Theme.of(context).primaryColor,
+        identifier: "book",
+        scrollDirection: EpubScrollDirection.ALLDIRECTIONS,
+        allowSharing: true,
+        enableTts: true,
+        nightMode: false,
+      );
 
-    VocsyEpub.locatorStream.listen((locator) {
-      print('LOCATOR: $locator');
-    });
+      VocsyEpub.locatorStream.listen((locator) {
+        print('LOCATOR: $locator');
+      });
 
-    if (File(filePath!).existsSync()) {
       VocsyEpub.open(
         epubPath,
         lastLocation: EpubLocator.fromJson({
@@ -85,8 +86,8 @@ class _HomePageState extends State<HomePage> {
           "locations": {"cfi": "epubcfi(/0!/4/4[simple_book]/2/2/6)"}
         }),
       );
-    } else {
-      startDownload(filePath!, bookTitle);
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -116,6 +117,7 @@ class _HomePageState extends State<HomePage> {
                       mainAxisSpacing: 10.0,
                     ),
                     itemBuilder: (context, index) {
+                      BookModel book = controller.books[index];
                       return Card(
                         elevation: 3,
                         child: Column(
@@ -127,16 +129,16 @@ class _HomePageState extends State<HomePage> {
                                 padding: const EdgeInsets.only(bottom: 0),
                                 child: IconButton(
                                   icon: Icon(
-                                    controller.books[index].marker
+                                    book.marker
                                         ? Icons.bookmark
                                         : Icons.bookmark_border,
                                     color: Colors.red,
                                   ),
                                   onPressed: () {
                                     setState(() {
-                                      controller.books[index].marker =
-                                          !controller.books[index].marker;
+                                      book.marker = !book.marker;
                                     });
+                                    controller.toggleFavorite(book);
                                   },
                                 ),
                               ),
@@ -144,26 +146,24 @@ class _HomePageState extends State<HomePage> {
                             GestureDetector(
                               onTap: () async {
                                 await startDownload(
-                                    controller.books[index].download_url,
-                                    controller.books[index].title);
-                                openEpubViewer(
-                                    filePath!, controller.books[index].title);
+                                    book.download_url, book.title);
+                                openEpubViewer(filePath);
                               },
                               child: Image.network(
-                                controller.books[index].cover_url,
+                                book.cover_url,
                                 height: 100,
                                 width: 100,
                                 fit: BoxFit.cover,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            SizedBox(height: 5),
                             Expanded(
                               child: Text(
-                                controller.books[index].title,
+                                book.title,
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
-                            Text(controller.books[index].author),
+                            Text(book.author),
                           ],
                         ),
                       );

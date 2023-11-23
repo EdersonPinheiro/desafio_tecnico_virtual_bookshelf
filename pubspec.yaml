@@ -39,6 +39,7 @@ dependencies:
   vocsy_epub_viewer:
   dio:
   path_provider:
+  sqflite:
 
 dev_dependencies:
   flutter_test:
