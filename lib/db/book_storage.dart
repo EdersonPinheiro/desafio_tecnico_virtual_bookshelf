@@ -62,10 +62,9 @@ class BookStorage {
       if (markerValue is bool) {
         marker = markerValue;
       } else {
-        // Se o valor não for do tipo booleano, você pode definir um valor padrão
-        // ou tratar essa situação de alguma outra forma.
+        
         marker =
-            false; // Definindo um valor padrão (pode ser true dependendo do caso)
+            false;
       }
 
       return BookModel(
